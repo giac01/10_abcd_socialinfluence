@@ -1,0 +1,171 @@
+---
+title: "Model Results"
+format: 
+  html:
+    code-link: true
+    code-fold: true
+    code-tools: true
+    df-print: paged
+editor: visual
+toc: true
+---
+
+## Load stuff
+
+### Data
+
+```{r}
+
+rm(list = ls(all.names = TRUE))
+
+library(brms)
+library(cmdstanr)
+library(tidyverse)
+
+df_long = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned.csv"), data.table = FALSE)
+
+
+df_long$sit_values_delta_factor = factor(df_long$sit_values_delta)
+
+```
+
+### Load Results
+
+```{r}
+
+model1 = readRDS(file = file.path("saved_models","model1.Rds"))
+model2 = readRDS(file = file.path("saved_models","model2.Rds"))
+model3 = readRDS(file = file.path("saved_models","model3.Rds"))
+model4 = readRDS(file = file.path("saved_models","model3.Rds"))
+
+model3_even = readRDS(file = file.path("saved_models","model3_even.Rds"))
+model3_odd  = readRDS(file = file.path("saved_models","model3_odd.Rds"))
+
+
+```
+
+## Model Summaries
+
+```{r}
+
+summary(model1)
+summary(model2)
+summary(model3)
+summary(model4)
+
+
+```
+
+# Analyse Posteriors
+
+```{r}
+library(tidybayes)
+
+draws_wide = model3 %>%
+  as.data.frame() %>% 
+  select(ends_with("sit_values_delta]")) %>%
+  as.matrix()
+
+colnames(draws_wide) =  gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", colnames(draws_wide))
+
+draws_delta_beta = model3 %>%
+  as.data.frame() %>% 
+  pull(b_sit_values_delta)
+
+draws_wide = draws_wide + (draws_delta_beta)
+
+draws_wide = as.data.frame(t(draws_wide))
+
+prob_conforming   = apply(draws_wide, 1, function(x) length(which(x>0))/length(x)) %>% as.numeric()
+conforming_pps    = as.numeric(prob_conforming>.90)
+nonconforming_pps = as.numeric(prob_conforming<.10)
+unclearconforming_pps = as.numeric(prob_conforming>=.10 & prob_conforming <= .90)
+
+conforming_category = dplyr::case_when(
+  prob_conforming < 0.10 ~ "nonconforming",
+  prob_conforming >= 0.10 & prob_conforming <= 0.90 ~ "unclear",
+  prob_conforming > 0.90 ~ "conforming",
+  .default = "other?!"
+)
+
+conformity_df = data.frame(
+  subject  = rownames(draws_wide),
+  meanbeta = apply(draws_wide, 1, mean),
+  conforming_category = conforming_category                      
+                           )
+
+avg_rt = df_long %>%
+  group_by(subject) %>%
+  summarise(mean_rt = mean(sit_values_rt_initialrating + sit_values_rt_finalrating)/1000)
+
+draws_wide %>% 
+  mutate(id = 1:nrow(.)) %>%
+  pivot_longer(cols = !contains("id")) %>%
+  mutate(conforming_category = conforming_category[.$id]) %>%
+  filter(id<100) %>%
+  ggplot(aes(x = value, group = id, col = conforming_category)) +
+  geom_density()
+
+df_long %>%
+  mutate(conforming_category = conforming_category[match(.$subject, rownames(draws_wide))]) %>%
+  mutate()
+
+dplyr::full_join(avg_rt, conformity_df, by = "subject") %>%
+  ggplot(aes(x = meanbeta, y = mean_rt)) + 
+  geom_point(aes( col = conforming_category), alpha = .3) + 
+  geom_smooth() + 
+  theme_bw() 
+
+df_long %>% 
+  mutate(change_score = sit_values_finalrating2 - sit_values_initialrating2) %>%
+  mutate(conforming_category = conforming_category[match(.$subject, rownames(draws_wide))]) %>%
+  ggplot(aes(y = change_score, x = sit_values_delta)) +
+  geom_jitter(width = .5, alpha = .2) + 
+  facet_wrap(~conforming_category)
+
+df_long %>% 
+  mutate(change_score = sit_values_finalrating2 - sit_values_initialrating2) %>%
+  mutate(conforming_category = conforming_category[match(.$subject, rownames(draws_wide))]) %>%
+  group_by(conforming_category, sit_values_delta) %>%
+  summarise(
+    mean_change_score = mean(change_score)
+  )
+
+```
+
+# Calculate Reliability
+
+### Split-Half Reliability
+
+```{r}
+
+odd_draws = model3_odd %>%
+  as.data.frame() %>% 
+  select(ends_with("sit_values_delta]")) 
+
+colnames(odd_draws) = gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", colnames(odd_draws))
+
+even_draws = model3_even %>%
+  as.data.frame() %>% 
+  select(ends_with("sit_values_delta]")) 
+
+colnames(even_draws) = gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", colnames(even_draws))
+
+shared_participants = intersect(colnames(odd_draws) ,colnames(even_draws) )
+
+even_draws = even_draws[match(shared_participants, colnames(even_draws))]
+odd_draws  =  odd_draws[match(shared_participants, colnames( odd_draws))]
+
+cor.test(
+  apply(even_draws,2,mean),
+  apply(odd_draws, 2,mean)
+)
+
+psych::alpha(
+  data.frame(
+    odd_trials_estimates =  apply(odd_draws,2,mean),
+    even_trials_estiamts =  apply(even_draws,2,mean)
+  )
+)
+
+```

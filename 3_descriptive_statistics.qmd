@@ -1,0 +1,322 @@
+---
+title: "Descriptive Statistics"
+format: 
+  html:
+    code-link: true
+    code-fold: true
+    code-tools: true
+    df-print: paged
+editor: visual
+toc: true
+---
+
+## Load Data / Packages
+
+```{r}
+
+rm(list = ls())
+
+source("0_load_r_packages.R")
+
+df_long_uncleaned = data.table::fread(file.path("cleaned_data", "sit_df_long_uncleaned.csv"),data.table = FALSE,showProgress=FALSE)
+
+df_long = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1.csv"),data.table = FALSE,showProgress=FALSE)
+
+# df_long$sit_values_scenario = factor(df_long$sit_values_scenario)
+# df_long$subject = factor(df_long$subject)
+# 
+# df_long$subjectnum = match(df_long$subject, unique(df_long$subject))
+# 
+# df_long$sit_values_rt_finalrating[df_long$sit_values_rt_finalrating>10000] = NA # For some reason we have two huge numbers here 
+# df_long$sit_values_rt_initialrating[df_long$sit_values_rt_initialrating>10000] = NA # For some reason we have two huge numbers here 
+# 
+# df_long$delta_m4 = ifelse(df_long$sit_values_delta ==-4, -4, 0)
+# df_long$delta_m2 = ifelse(df_long$sit_values_delta ==-2, -2, 0)
+# df_long$delta_2  = ifelse(df_long$sit_values_delta == 2,  2, 0)
+# df_long$delta_4  = ifelse(df_long$sit_values_delta == 4,  4, 0)
+# 
+# # df_long %>%
+#   select(contains("delta"))
+
+
+```
+
+### Check Build Versions
+
+```{r}
+
+subject_build = df_long %>%
+  group_by(subject) %>%
+  summarise(build_used = (unique(build))) 
+
+px_reported = df_long_uncleaned %>%
+  group_by(subject) %>%
+  summarise(px_reported = length(grep("px", sit_values_initialrating))) 
+
+no_px_subjects = px_reported %>%
+  filter(px_reported ==0) %>%
+  pull(subject)
+
+
+table(subject_build$build_used) %>% 
+  knitr::kable()
+
+```
+
+### Inspect original data values
+
+```{r}
+
+# df_long_uncleaned$sit_values_initialrating
+
+
+```
+
+### Remove Duplicate Rows & Final Bits Of Data cleaning
+
+```{r}
+
+# table(table(df_long$subject))
+# table(table(df_long$subject))
+# 
+# 
+# df_long$check_duplicates = paste0(df_long$subject, df_long$sit_values_scenario,df_long$sit_values_finalrating2, sep = ".")
+# df_long$check_duplicates = duplicated(df_long$check_duplicates)
+# 
+# df_long = df_long %>%
+#            filter(!check_duplicates)
+# 
+# n_trials = df_long %>%
+#            group_by(subject) %>%
+#            summarise(n_trials = n())
+# 
+# df_long$n_trials = n_trials$n_trials[match(df_long$subject, n_trials$subject)]
+
+```
+
+### Save Cleaned Data
+
+```{r}
+
+# write.csv(df_long,file.path("cleaned_data", "sit_df_long_cleaned.csv"), row.names = FALSE)
+
+```
+
+## Example Data File
+
+```{r}
+x = read.csv("/home/rstudio/Users/giaco/OneDrive/Work/blakemore_postdoc/Analyses/5_abcd_reward_lone/data/socialinfluence_extracted//SIT/2_year_follow_up_y_arm_1/NDAR_INV003RTV85_2_year_follow_up_y_arm_1_sit.csv")
+
+read.csv("/home/rstudio/Users/giaco/OneDrive/Work/blakemore_postdoc/Analyses/5_abcd_reward_lone/data/socialinfluence_extracted//SIT/2_year_follow_up_y_arm_1/NDAR_INV003RTV85_2_year_follow_up_y_arm_1_sit.csv")
+
+read.csv("/home/rstudio/Users/giaco/OneDrive/Work/blakemore_postdoc/Analyses/5_abcd_reward_lone/data/socialinfluence_extracted//SIT/2_year_follow_up_y_arm_1/NDAR_INVCU05ND45_2_year_follow_up_y_arm_1_sit.csv")
+
+```
+
+# Descriptive Statistics
+
+```{r}
+sit_n_trials = df_long %>%
+  group_by(subject) %>%
+  summarise(N = n()) 
+
+# df_long$n_trials = sit_n_trials$N[match(df_long$subject, sit_n_trials$subject)]
+
+sit_n_trials %>%
+  ggplot(aes(x = N)) +
+  geom_histogram() + 
+  labs(
+    title = "Numbers of trials completed by each participant"
+  ) + 
+  theme_bw()
+
+```
+
+```{r}
+
+df_long$sit_values_rt_finalrating %>% max()
+
+df_long %>%
+  filter(sit_values_rt_finalrating > 10000) %>%
+  pull(sit_values_rt_finalrating) %>% 
+  table()
+
+df_long  %>%
+  mutate(sit_values_rt_finalrating = sit_values_rt_finalrating/1000) %>%
+  ggplot(aes(x = sit_values_rt_finalrating)) +
+  geom_histogram(bins = 100) + 
+  labs(
+    title = "Reaction Time: Final Rating"
+  ) + 
+  # xlim(0,10) +
+  theme_bw()
+
+df_long  %>%
+  mutate(sit_values_rt_initialrating = sit_values_rt_initialrating/1000) %>%
+  ggplot(aes(x = sit_values_rt_initialrating)) +
+  geom_histogram(bins = 100) + 
+  labs(
+    title = "Reaction Time: Initial Rating"
+  ) + 
+  # xlim(0,10) +
+  theme_bw()
+
+```
+
+```{r}
+
+
+df_long %>%
+  group_by(sit_values_scenario) %>%
+  summarise(
+    `Mean Initial Rating` = mean(sit_values_initialrating2, na.rm = TRUE),
+    N = n()
+    ) %>%
+  arrange(`Mean Initial Rating`) %>%
+  knitr::kable(digits = 1)
+
+```
+
+```{r}
+
+df_long  %>%
+  ggplot(aes(x = sit_values_initialrating2)) +
+  geom_histogram(bins = 100) + 
+  labs(
+    title = "Histogram of Initial Ratings"
+  ) + 
+  # xlim(0,10) +
+  theme_bw()
+
+df_long  %>%
+  ggplot(aes(x = sit_values_peerrating2)) +
+  geom_histogram(bins = 100) + 
+  labs(
+    title = "Histogram of Peer Ratings"
+  ) + 
+  xlim(0,10) +
+  theme_bw()
+
+df_long  %>%
+  ggplot(aes(x = sit_values_finalrating2)) +
+  geom_histogram(bins = 100) + 
+  labs(
+    title = "Histogram of Final Ratings"
+  ) + 
+  # xlim(0,10) +
+  theme_bw()
+
+df_long %>%
+  # filter(subject %in% no_px_subjects) %>%
+  # filter(screenWidth_inmm == 104) %>%
+  ggplot(aes(
+    x = sit_values_initialrating2, 
+    y = sit_values_finalrating2
+    )) + 
+  geom_point(alpha = .1) + 
+  labs(x = "Initial Rating", y = "Final Rating") 
+
+df_long %>%
+  ggplot(aes(
+    x = sit_values_initialrating2, 
+    y = sit_values_peerrating2
+    )) + 
+  geom_point(alpha = .1) + 
+   scale_y_continuous(
+    breaks = seq(1, 9, by = 2)  
+  ) +
+  labs(x = "Initial Rating", y = "Peer Rating") 
+
+df_long %>%
+  ggplot(aes(
+    x = sit_values_peerrating2, 
+    y = sit_values_finalrating2
+    )) + 
+  geom_point(alpha = .01) + 
+  labs(x = "Peer Rating", y = "Final Rating") 
+
+# First rating and delta plot -------------------------------------------------
+
+ggplot(df_long, aes(x = sit_values_initialrating2, y = sit_values_delta)) + 
+  geom_point() + 
+  labs(x = "initial rating", y = "delta")
+```
+
+## Data Collection Dates
+
+```{r}
+
+df_long %>%
+  filter(!duplicated(subject)) %>%
+  mutate(
+    `Remote Testing` = !is.na(test_setting)
+  ) %>%
+  ggplot(aes(x = cleandate, fill = `Remote Testing`)) + 
+  geom_histogram() + 
+  scale_x_date(date_breaks = "2 months", labels = scales::date_format("%b-%y")) +
+  theme_minimal() +  # Cleaner plot appearance
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) + 
+  labs(
+    title = "Testing Dates",
+    x = NULL, 
+    y = NULL
+  ) 
+
+```
+
+```{r}
+
+df_long %>%
+  group_by(sit_values_delta) %>%
+  summarise(Count = n(), .groups = 'drop') %>% 
+  knitr::kable(
+    label = "Frequency of different delta conditions",
+    col.names = c("delta conditions", "Frequency")
+    )
+
+
+```
+
+## Number of Participants & trials
+
+```{r}
+
+find_mode <- function(x) {
+  uniqx <- unique(x)
+  uniqx[which.max(tabulate(match(x, uniqx)))]
+}
+
+df_long %>%
+  group_by(subject) %>%
+  summarise(
+    n_trials = n()
+  ) %>%
+  summarise(
+    mean = mean(n_trials),
+    min  = min (n_trials),
+    max  = max (n_trials),
+    mode = find_mode(n_trials)
+  ) %>% 
+  t() %>%
+  knitr::kable(
+    caption = "Number of trials",
+    digits =2
+  )
+
+
+df_long %>%
+  pull(subject) %>%
+  unique() %>%
+  length()
+```
+
+### Data Collection Locations
+
+```{r}
+
+df_long$test_setting %>% table(.,useNA = "always")
+
+
+
+
+```

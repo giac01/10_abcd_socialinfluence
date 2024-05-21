@@ -7,7 +7,7 @@ library(cmdstanr)
 library(tidyverse)
 
 variational = FALSE
-small_data  = TRUE
+small_data  = FALSE
 
 df_long      = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1.csv"), data.table = FALSE)
 
@@ -23,27 +23,15 @@ df_long$initialrating_boundrysquared =    (df_long$sit_values_initialrating2 - 5
 # df_long_odd  = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_odd.csv"), data.table = FALSE)
 # df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_even.csv"), data.table = FALSE)
 
-
 df_long = df_long %>%
   filter(n_trials > 22) 
 
 if (small_data){
-  random_pps = sample(unique(df_long$subject), 350, replace = FALSE)
+  set.seed(10)
+  random_pps = sample(unique(df_long$subject), 200, replace = FALSE)
   df_long = df_long %>%
     filter(subject %in% random_pps)
 }
-
-
-# Quick LM models --------------------------------------------------------------
-
-# This only works with brms 2.17.0 currently!
-lm(sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + (sit_values_delta),
-   data = df_long) %>%
-  summary()
-
-lm(sit_values_finalrating2 ~ 0 + sit_values_initialrating2 + delta_m4 + delta_m2 + delta_2 + delta_4,
-   data = df_long) %>%
-  summary()
 
 # brms arguments ---------------------------------------------------------------
 
@@ -51,7 +39,7 @@ if (variational){
   brm_args = list(
     algorithm = "meanfield",
     iter = 1000000,
-    tol_rel_obj = 0.0001,
+    tol_rel_obj = 0.001,
     data = df_long,
     backend = "cmdstanr",
     threads = threading(8)
@@ -64,15 +52,16 @@ if (!variational){
     data = df_long,
     chains = threads_run,
     cores = threads_run,
-    threads = threading(4),
-    # threads = future::availableCores()/threads_run,
+    # threads = threading(4),
+    threads = future::availableCores()/threads_run,
     backend = "cmdstanr",
-    iter = 2000
+    iter = 3000
   )
 }
   
-
 # What factors predict residual variation --------------------------------------
+
+# This model wouldn't converge
 
 # model without initialrating_boundrycloseness
 # modelarg =  c(
@@ -95,10 +84,37 @@ if (!variational){
 
 # model with initialrating_boundrycloseness
 
+if (FALSE){
+  
+  modelarg =  c(
+    list(
+      formula =   bf(  sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + sit_values_delta + (0 + sit_values_delta | subject),
+                       sigma ~ 0 + initialrating_boundrycloseness + ( 1 | subject)
+      ),
+      seed = 1,
+      prior =  c(
+        prior(normal(0, 1), class = "b"),
+        prior(cauchy(0, 1), class = "sd")
+      )
+    ),
+    brm_args
+  )
+  # 126 seconds
+  # 145 seconds
+  model3b = do.call(brm, modelarg)
+  
+  saveRDS(model3b, file = file.path("saved_models","model3b.Rds"))
+  
+}
+
+# Model 3c ----------------------------------------------------------------------
+
+#118s
+
 modelarg =  c(
   list(
-    formula =   bf(  sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + sit_values_delta + (0 + sit_values_delta | subject),
-                     sigma ~ 1  + initialrating_boundrycloseness + ( 1 | subject)
+    formula =   bf(  sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + sit_values_delta + (0 + sit_values_delta | subject) + (1 | sit_values_scenario),
+                     sigma ~ 1 + initialrating_boundrycloseness + ( 1 | subject) + (1 | sit_values_scenario)
     ),
     seed = 1,
     prior =  c(
@@ -109,16 +125,10 @@ modelarg =  c(
   brm_args
 )
 
-model3b = do.call(brm, modelarg)
+model3c = do.call(brm, modelarg)
 
-saveRDS(model3b, file = file.path("saved_models","model3b.Rds"))
+  saveRDS(model3c, file = file.path("saved_models","model3c.Rds"))
 
-default_prior(
-  bf(  sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + sit_values_delta + (0 + sit_values_delta |a| subject),
-                   sigma ~ 1  + initialrating_boundrycloseness + ( 1 |a| subject)
-  ),
-  data = df_long
-)
 
 
 

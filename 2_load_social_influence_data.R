@@ -1,15 +1,24 @@
-# cmdstanr::set_cmdstan_path(path = "/home/gb424/.cmdstan/cmdstan-2.34.1")
-cmdstanr::set_cmdstan_path(path = "/home/rstudio/.cmdstan/cmdstan-2.35.0")
+cmdstanr::set_cmdstan_path(path = "/home/gb424/.cmdstan/cmdstan-2.34.1")
+# cmdstanr::set_cmdstan_path(path = "/home/rstudio/.cmdstan/cmdstan-2.35.0")
 
 rm(list = ls(all.names = TRUE))
 
 source("0_load_r_packages.R")
 
-remove_participants_few_trials <- as.logical(Sys.getenv("REMOVE_PARTICIPANTS_FEW_TRIALS", unset = "FALSE"))
+remove_participants_few_trials <- as.logical(Sys.getenv("REMOVE_PARTICIPANTS_FEW_TRIALS", unset = "TRUE"))
 variational                    <- as.logical(Sys.getenv("VARIATIONAL", unset = "FALSE"))
+small_sample_test              <- as.logical(Sys.getenv("SMALL_SAMPLE", unset = "FALSE"))
+myseed                         <- as.numeric(Sys.getenv("MYSEED"), unset = "1")
 
+
+cat("remove_participants_few_trials\n")
 print(remove_participants_few_trials)
+cat("variational\n")
 print(variational)
+cat("small_sample_test\n")
+print(small_sample_test)
+cat("myseed\n")
+print(myseed)
 
 df_long      = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1.csv"), data.table = FALSE)
 
@@ -22,7 +31,7 @@ df_long$initialrating_boundrysquared   = (df_long$sit_values_initialrating2 - 5)
 df_long_odd  = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_odd.csv"), data.table = FALSE)
 df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_even.csv"), data.table = FALSE)
 
-random_pps = sample(unique(df_long$subject), 400, replace = FALSE)
+random_pps = sample(unique(df_long$subject), 300, replace = FALSE)
 
 # Remove participants with limited data ----------------------------------------
 if (remove_participants_few_trials){
@@ -37,6 +46,21 @@ if (remove_participants_few_trials){
   
 }
 
+# Use Small Sample for testing -------------------------------------------------
+
+if (small_sample_test){
+  df_long = df_long %>%
+    filter(subject %in% random_pps)
+  
+  df_long_odd = df_long_odd %>%
+    filter(subject %in% random_pps)
+  
+  df_long_even = df_long_even %>%
+    filter(subject %in% random_pps)
+  
+}
+
+
 # brms arguments ---------------------------------------------------------------
 
 if (variational){
@@ -46,7 +70,8 @@ if (variational){
     tol_rel_obj = 0.0001,
     data = df_long,
     backend = "cmdstanr",
-    threads = threading(8)
+    threads = threading(8),
+    seed    = myseed
   )
 }
 
@@ -59,9 +84,9 @@ if (!variational){
     # threads = threading(4),
     threads = future::availableCores()/threads_run,
     backend = "cmdstanr",
-    iter = 3000
+    iter = 3000,
+    seed = myseed
   )
 }
 
-# iSsues
 

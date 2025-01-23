@@ -8,67 +8,351 @@ format:
     df-print: paged
 editor: visual
 toc: true
+engine: knitr
+execute:
+  cache: true
+knitr:
+  opts_chunk: 
+    R.options:
+      width: 600
 ---
 
-## Load stuff
+# Load stuff
 
-### Data
-
-```{r}
+```{r, results="hide", message=FALSE, warning=FALSE}
 
 rm(list = ls(all.names = TRUE))
 
 library(brms)
 library(cmdstanr)
 library(tidyverse)
+library(tidybayes)
 
-df_long = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned.csv"), data.table = FALSE)
+df_long = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1.csv"), data.table = FALSE)
 
 
 df_long$sit_values_delta_factor = factor(df_long$sit_values_delta)
 
-```
-
-### Load Results
-
-```{r}
-
 model1 = readRDS(file = file.path("saved_models","model1.Rds"))
 model2 = readRDS(file = file.path("saved_models","model2.Rds"))
-model3 = readRDS(file = file.path("saved_models","model3.Rds"))
-model4 = readRDS(file = file.path("saved_models","model3.Rds"))
+# model3a = readRDS(file = file.path("saved_models","model3a.Rds"))
+model3b = readRDS(file = file.path("saved_models","model3b.Rds"))
+model3c = readRDS(file = file.path("saved_models","model3c.Rds"))
+model4 = readRDS(file = file.path("saved_models","model4.Rds"))
+model4b = readRDS(file = file.path("saved_models","model4b.Rds"))
+model4_ppcheck = readRDS(file = file.path("saved_models","model4_ppcheck"))
 
-model3_even = readRDS(file = file.path("saved_models","model3_even.Rds"))
-model3_odd  = readRDS(file = file.path("saved_models","model3_odd.Rds"))
+model5 = readRDS(file = file.path("saved_models","model5.Rds"))
 
+
+model1_even = readRDS(file = file.path("saved_models","model1_even.Rds"))
+model1_odd  = readRDS(file = file.path("saved_models","model1_odd.Rds"))
+
+# model3_even = readRDS(file = file.path("saved_models","model3_even.Rds"))
+# model3_odd  = readRDS(file = file.path("saved_models","model3_odd.Rds"))
 
 ```
 
-## Model Summaries
+# 0) Data example
 
 ```{r}
 
+
+df_long %>%
+  select(subject, trialcount_centered, sit_values_initialrating2, sit_values_delta, sit_values_finalrating2) %>%
+  slice(1:200)
+
+```
+
+# 1) Simple Model Results
+
+**Results**
+
+-   Global Intercept and Slope have expected values (\~ 0 and \~ 1)
+-   Significant effect of delta (\~40%)
+-   Significant Individual Differences in the social influence effect
+-   No signifiacnt individual differences in subject random intercept
+
+Note that sd(Intercent) = 0, indicating that there is little individual differences in the intercept.
+
+```{r}
 summary(model1)
+```
+
+# 2) Does scenario and trial number moderate the social influence effect?
+
+**Results**
+
+-   No effect of trial number
+-   Scenario doesn't strongly influence the social influence effect
+-   Scenario DOES increase the intercept
+-   High intercept value seems a little odd (but there are now three factors that influence the intercept, so need to take them all into account).
+
+```{r}
 summary(model2)
-summary(model3)
-summary(model4)
+```
+
+## Investigate how scenarios vary in their intercepts
+
+```{r}
+
+xx =
+model2 %>% 
+  tidybayes::spread_draws(r_sit_values_scenario[scenario, effect]) %>%
+  group_by(scenario)
+
+xxx = 
+xx %>%
+  filter(effect == "Intercept") %>%
+  summarise(
+    ri_mean = mean(r_sit_values_scenario)
+  ) %>%
+  arrange(ri_mean)
+
+xxx
+  
+xx %>%
+  ggplot(aes(x = r_sit_values_scenario, group = scenario)) +
+  geom_density()
+  
+
+```
+
+# 3) Predictors of Residual Variation
+
+-   Work in progress
+
+-   Seems to be a LOT of variation how variable each participant's repsonses were
+
+-   However, the model isn't fitting very well (VERY LOW EFFICIENCY), so something needs to change here...
+
+```{r}
+summary(model3b)
+```
+
+-   More complex model struggles to efficiently estimate the posterior
+
+-   This model took 1:03 hours to complete (76 cores)
+
+```{r}
+
+summary(model3c)
+
+```
+
+## Plot high/low variability participants
+
+-   Looking at the plot, the low variability participants are extremely conforming!
+
+```{r}
+
+participant_variability = model3b %>% 
+  tidybayes::spread_draws(r_subject[subject, sigma_Intercept]) %>% 
+  group_by(subject) %>%
+  summarise(
+    mean_sigma = mean(r_subject)
+  )
+
+qvals = quantile(participant_variability$mean_sigma, probs = c(0.1, 0.9))
+
+low_var_pps = participant_variability$subject[participant_variability$mean_sigma<qvals[1]]
+high_var_pps = participant_variability$subject[participant_variability$mean_sigma>qvals[2]]
+
+# FROM HERE!
+
+df_long %>%
+  # filter(subject %in% no_px_subjects) %>%
+  # filter( subject %in% low_var_pps) %>%
+  ggplot(aes(
+    x = sit_values_initialrating2, 
+    y = sit_values_finalrating2
+    )) + 
+  geom_point(alpha = .1) + 
+  labs(x = "Initial Rating",
+       y = "Final Rating",
+       title = "High Variability Participants"
+       ) 
+  
+
+df_long %>%
+  # filter(subject %in% no_px_subjects) %>%
+  filter( subject %in% high_var_pps) %>%
+  ggplot(aes(
+    x = sit_values_initialrating2, 
+    y = sit_values_finalrating2
+    )) + 
+  geom_point(alpha = .1) + 
+  labs(x = "Initial Rating",
+       y = "Final Rating",
+       title = "Low Variability Participants"
+       ) 
+  
+
 
 
 ```
 
-# Analyse Posteriors
+## Posterior Predictive Checks
+
+The downside of our normal distribution model is that it doesn't account for the boundries of the VAS.
+
+The posterior predictive checks below that our first model makes predictions that are out of the bounds of the VAS.
+
+One potential solution to this is to use a distribution that is bounded.
+
+```{r}
+# To get a broad picture we just use a subsample of the observations! bay
+brms::pp_check(
+  model1,
+  newdata = slice(df_long, sample(nrow(df_long), 50000, replace = TRUE)),
+  type = "dens_overlay",
+  ndraws = 8,
+  cores = 8
+  )
+
+
+model4_ppcheck$continuous
+# brms::pp_check(
+#   model4,
+#   # newdata = slice(df_long, sample(nrow(df_long), 50000, replace = TRUE)),
+#   type = "dens_overlay",
+#   ndraws = 3,
+#   cores = 8
+#   )
+
+# ordbetareg::pp_check_ordbeta(
+#   model4,
+#   cores = 8
+# )
+
+```
+
+# 4) Should we use a bounded continuous distribution?
+
+## Beta Distribution
+
+```{r}
+
+beta_density <- function(mu, phi) {
+  alpha <- mu * phi
+  beta <- (1 - mu) * phi
+  function(x) dbeta(x, alpha, beta)
+}
+
+# Function to get the peak value of the beta distribution
+get_beta_peak <- function(mu, phi) {
+  alpha <- mu * phi
+  beta <- (1 - mu) * phi
+  if (alpha > 0 && beta > 0) {
+    return( (alpha - 1) / (alpha + beta - 2)) 
+  } else {
+    return(NA)
+  }
+}
+
+# Define the parameters for the 5 beta distributions
+params <- data.frame(
+  mu = c(.3,.5,.5,.7),
+  phi = c(5,5,1.5, 5),
+  id = factor(1:2)
+)
+
+colors <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7") 
+colors <- colors[0:(nrow(params)-1) %% 7 + 1]
+params$color <- colors
+
+# Create the ggplot
+p <- ggplot(data.frame(x = c(0, 1)), aes(x)) +
+  labs(title = "Beta Distributions with Mean and Precision Parameterization",
+       x = "x",
+       y = "Density") +
+  ylim(c(0,2.5)) +
+  theme_minimal()
+
+# get_beta_peak(.5, 5)
+# get_beta_peak(.3, 5)
+
+# Add each beta distribution with its parameters
+for (i in 1:nrow(params)) {
+  mu <- params$mu[i]
+  phi <- params$phi[i]
+  peak_x <- get_beta_peak(mu, phi)
+  peak_y <- dbeta(peak_x, mu * phi, (1 - mu) * phi)
+
+  p <- p + stat_function(
+    fun = beta_density(mu, phi),
+    col = params$color[i],
+    size = 1
+  ) +
+    geom_text(
+      data = data.frame(x = peak_x, y = peak_y, label = paste("mu =", mu, "phi =", phi), id = params$id[i]),
+      col = params$color[i],
+      aes(x = x, y = y, label = label),
+      hjust = 0.5, vjust = -1, size = 5,
+      show.legend = FALSE
+    )
+}
+
+
+# Print the plot
+p
+
+
+```
+
+## Ordered Beta Distribution
+
+```{r}
+N = 10000
+example_data = data.frame(
+  y1 = ordbetareg::rordbeta(N, mu = .5, phi = 5, cutpoints = c(-4,4)),
+  y2 = ordbetareg::rordbeta(N, mu = .8, phi = 5, cutpoints = c(-4,4))
+)
+
+example_data %>%
+  pivot_longer(cols = starts_with("y")) %>%
+  ggplot(aes(x = value, fill = factor(name))) + 
+  geom_histogram(position = "dodge", binwidth = 0.01) +
+  labs(title = "Histogram of Ordered Beta Distribution Samples",
+       x = "Value",
+       y = "Count",
+       fill = "Distribution") +
+  theme_minimal()
+
+
+
+```
+
+# 5) Categorical delta models
+
+```{r}
+
+df_long %>%
+  select(subject, trialcount_centered, sit_values_initialrating2, sit_values_delta, delta_m4, delta_m2, delta_2, delta_4, sit_values_finalrating2) %>%
+  slice(1:200)
+
+```
+
+```{r}
+
+summary(model5)
+
+
+```
+
+# 6) Modelling Individual Differences in Social Influence
 
 ```{r}
 library(tidybayes)
 
-draws_wide = model3 %>%
+draws_wide = model2 %>%
   as.data.frame() %>% 
-  select(ends_with("sit_values_delta]")) %>%
+  select(matches("r_subject\\[(.*),sit_values_delta\\]")) %>%
   as.matrix()
 
 colnames(draws_wide) =  gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", colnames(draws_wide))
 
-draws_delta_beta = model3 %>%
+draws_delta_beta = model2 %>%
   as.data.frame() %>% 
   pull(b_sit_values_delta)
 
@@ -94,21 +378,40 @@ conformity_df = data.frame(
   conforming_category = conforming_category                      
                            )
 
-avg_rt = df_long %>%
-  group_by(subject) %>%
-  summarise(mean_rt = mean(sit_values_rt_initialrating + sit_values_rt_finalrating)/1000)
+conformity_df$conforming_category %>% table()
+
+# avg_rt = df_long %>%
+#   group_by(subject) %>%
+#   summarise(mean_rt = mean(sit_values_rt_initialrating + sit_values_rt_finalrating)/1000)
 
 draws_wide %>% 
   mutate(id = 1:nrow(.)) %>%
   pivot_longer(cols = !contains("id")) %>%
   mutate(conforming_category = conforming_category[.$id]) %>%
-  filter(id<100) %>%
+  # filter(id<100) %>%
   ggplot(aes(x = value, group = id, col = conforming_category)) +
-  geom_density()
+  geom_density() + 
+  coord_cartesian(xlim = c(NA, 1.8)) +
+  labs(title = "Posterior Distribution of each subject's social influence effect")
 
-df_long %>%
-  mutate(conforming_category = conforming_category[match(.$subject, rownames(draws_wide))]) %>%
-  mutate()
+
+draws_wide %>% 
+  mutate(id = 1:nrow(.)) %>%
+  pivot_longer(cols = !contains("id")) %>%
+  mutate(conforming_category = conforming_category[.$id]) %>%
+  filter(id %in% sample(.$id, size = 50)) %>%
+  ggplot(aes(x = value, group = id, col = conforming_category)) +
+  geom_density() + 
+  coord_cartesian(xlim = c(NA, 1.25)) + 
+  labs(title = "Posterior Distribution of each subject's social influence effect",
+       subtitle = "Random subsample of 50 subjects")
+
+```
+
+```{r}
+#| echo: false
+#| eval: false
+
 
 dplyr::full_join(avg_rt, conformity_df, by = "subject") %>%
   ggplot(aes(x = meanbeta, y = mean_rt)) + 
@@ -131,23 +434,63 @@ df_long %>%
     mean_change_score = mean(change_score)
   )
 
+
 ```
 
-# Calculate Reliability
+## Calculate Reliability
+
+### Bignardi's Reliability
+
+![Reliability](images/8_posteriors.png){scale="1"}
+
+```{r}
+
+calc_r_brms = function(
+    input_model
+){
+  # browser()
+  # tidybayes::get_variables(input_model)
+  
+  draws_wide = input_model %>%
+    as.data.frame() %>%
+    select(matches("r_subject\\[(.*),sit_values_delta\\]")) %>%
+    t() %>%
+    data.frame()
+  
+  col_select = sample(1:ncol(draws_wide), replace = F)
+  draws_wide_1 = draws_wide[col_select[1:(length(col_select)/2)]]  
+  draws_wide_2 = draws_wide[col_select[(length(col_select)/2+1):length(col_select)]] 
+  
+  cors = sapply(1:length(draws_wide_1), function(i) cor(draws_wide_1[,i],draws_wide_2[,i]))
+  
+  cors_hcdi = ggdist::mean_hdci(cors)
+  
+  return(cors_hcdi)
+}
+
+# undebug(calc_r_brms)
+calc_r_brms(model2)
+
+
+
+
+```
 
 ### Split-Half Reliability
 
 ```{r}
 
-odd_draws = model3_odd %>%
+
+
+odd_draws = model1_odd %>%
   as.data.frame() %>% 
-  select(ends_with("sit_values_delta]")) 
+  select(matches("r_subject\\[(.*),sit_values_delta\\]"))
 
 colnames(odd_draws) = gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", colnames(odd_draws))
 
-even_draws = model3_even %>%
+even_draws = model1_even %>%
   as.data.frame() %>% 
-  select(ends_with("sit_values_delta]")) 
+  select(matches("r_subject\\[(.*),sit_values_delta\\]"))
 
 colnames(even_draws) = gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", colnames(even_draws))
 
@@ -167,5 +510,91 @@ psych::alpha(
     even_trials_estiamts =  apply(even_draws,2,mean)
   )
 )
+
+```
+
+# 7) Is the social influence effect moderated by date, testing location, age?
+
+```{r}
+
+si_est = 
+model2 %>%
+    as.data.frame() %>%
+    select(matches("r_subject\\[(.*),sit_values_delta\\]")) %>%
+    apply(.,2,mean)
+
+si_est = data.frame(
+  subject = gsub("r_subject\\[(.*),sit_values_delta\\]", "\\1", names(si_est)),
+  si_est = as.numeric(si_est)
+)
+
+df_long_filtered = df_long %>%
+  filter(!duplicated(subject)) 
+
+si_est$cleandate = df_long_filtered$cleandate[match(si_est$subject, df_long_filtered$subject)]
+# si_est$cleandate = df_long_filtered$[match(si_est$subject, df_long_filtered$subject)]
+
+si_est %>%
+  ggplot(aes(x = cleandate, y = si_est)) +
+  geom_point() + 
+  coord_cartesian(ylim = c(NA,1)) + 
+  geom_smooth() + 
+  labs(
+    title = "Does the social influence effect change over time?",
+    y = "Social Influence Estimate for each Subject",
+    x = "Date of testing"
+  )
+
+```
+
+# 8) Relations with other risk taking variables
+
+## Resistance to peer pressure
+
+```{r}
+
+
+
+
+ce_y_rpi = read.csv("~/Users/giaco/OneDrive/Work/blakemore_postdoc/Analyses/5_abcd_reward_lone/data/core/culture-environment/ce_y_rpi.csv")
+
+ce_y_rpi %>%
+  select(starts_with("peerinfluence_q")) %>%
+  gbtoolbox::plot_correlations()
+
+x=
+ce_y_rpi %>%
+  select(starts_with("peerinfluence_q")) %>%
+  psych::alpha(check.keys=TRUE)
+
+x$total
+
+ce_y_rpi %>%
+  select(starts_with("peerinfluence_q")) %>%
+  pivot_longer(cols = everything()) %>%
+  group_by(name) %>%
+  summarise(
+    N_1 = length(which(value==1)),
+    N_2 = length(which(value==2))
+  )
+
+ce_y_rpi$subject = ce_y_rpi$src_subject_id
+
+ce_y_rpi = ce_y_rpi %>% 
+  select(subject,peerinfluence_ss_mean)
+
+
+df = merge(si_est, ce_y_rpi, by = "subject")
+
+cor.test(df$si_est, df$peerinfluence_ss_mean)
+
+df %>% 
+  ggplot(aes(si_est, peerinfluence_ss_mean)) + 
+  geom_point() + 
+  labs(x = "Knoll Task Social Influence Measure",
+       y = "Resistance to Peer Influence Scale"
+       ) + 
+  geom_smooth() +
+  theme_ggdist()
 
 ```

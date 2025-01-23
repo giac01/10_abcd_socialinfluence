@@ -1,5 +1,5 @@
 rm(list = ls(all.names = TRUE))
-rm(list = ls(envir = .GlobalEnv), envir = .GlobalEnv)
+
 # source("0_load_abcd.R")
 source("0_load_r_packages.R")
 
@@ -12,11 +12,11 @@ sit_df_list = lapply(sit_files, function(x) data.table::fread(x, colClasses = "c
 
 all_colnames = lapply(sit_df_list, function(df) colnames(df)) %>% unlist() %>% unique()
 
-all_colnames = colnames(sit_df_list[[1]])
+# identical(all_colnames, colnames(sit_df_list[[1]]))
 
 table(sapply(sit_df_list,ncol)) # Some data.frames are 27 variables and others have 35
 
-add_cols_if_missing = function(df, cols){
+add_cols_if_missing = function(df){
   missing_columns = all_colnames[!(all_colnames %in% colnames(df))]
   for(column_name in missing_columns){
     df[[column_name]] <- NA
@@ -25,7 +25,7 @@ add_cols_if_missing = function(df, cols){
   return(df)
 }
 
-sit_df_list2 = lapply(sit_df_list, function(df) add_cols_if_missing(df, all_colnames))
+sit_df_list2 = lapply(sit_df_list, function(df) add_cols_if_missing(df))
 
 for(i in seq_along(sit_df_list2)) {
   sit_df_list2[[i]]$filename = sit_files[i]
@@ -49,6 +49,8 @@ sit_df_long$sit_values_finalrating2   = gsub("px","", sit_df_long$sit_values_fin
                                         gsub(",",".", .) %>%
                                         as.numeric()
 
+# Caclulate other derived variables  ----------------------------------------------------
+
 sit_df_long$sit_values_delta          = (sit_df_long$sit_values_peerrating2 - sit_df_long$sit_values_initialrating2) %>%
                                         # as.numeric() %>%
                                         round(., digit = 4)
@@ -60,6 +62,10 @@ sit_df_long$sit_values_rt_initialrating = as.numeric(sit_df_long$sit_values_rt_i
 
 sit_df_long$sit_values_rt_finalrating[sit_df_long$sit_values_rt_finalrating>10000] = NA # For some reason we have two huge numbers here 
 sit_df_long$sit_values_rt_initialrating[sit_df_long$sit_values_rt_initialrating>10000] = NA # For some reason we have two huge numbers here 
+
+sit_df_long$sit_values_rt_finalrating[sit_df_long$sit_values_rt_finalrating<0] = NA # We have a couple of negative RTs
+sit_df_long$sit_values_rt_initialrating[sit_df_long$sit_values_rt_initialrating<0] = NA #
+
 
 sit_df_long$delta_m4 = ifelse(sit_df_long$sit_values_delta ==-4, -4, 0)
 sit_df_long$delta_m2 = ifelse(sit_df_long$sit_values_delta ==-2, -2, 0)
@@ -121,15 +127,12 @@ sit_df_long2 = sit_df_long2 %>%
     trialcount_centered = row_number() - mean(trialcount)
     ) 
 
-
 # Remove Duplicated Rows of Data -----------------------------------------------
 sit_df_long2$check_duplicates = paste0(sit_df_long2$subject, sit_df_long2$sit_values_scenario,sit_df_long2$sit_values_finalrating2, sep = ".")
 sit_df_long2$check_duplicates = duplicated(sit_df_long2$check_duplicates)
 
 sit_df_long2 = sit_df_long2 %>%
   filter(!check_duplicates)
-
-
 
 write.csv(sit_df_long2,file.path("cleaned_data", "sit_df_long_cleaned1.csv"))
 

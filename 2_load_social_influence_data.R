@@ -8,7 +8,10 @@ source("0_load_r_packages.R")
 remove_participants_few_trials <- as.logical(Sys.getenv("REMOVE_PARTICIPANTS_FEW_TRIALS", unset = "TRUE"))
 variational                    <- as.logical(Sys.getenv("VARIATIONAL", unset = "FALSE"))
 small_sample_test              <- as.logical(Sys.getenv("SMALL_SAMPLE", unset = "FALSE"))
-myseed                         <- as.numeric(Sys.getenv("MYSEED"), unset = "1")
+myseed                         <- as.numeric(Sys.getenv("MYSEED", unset = "1"))
+warmup                         <- as.numeric(Sys.getenv("WARMUP", unset = "1000"))
+iter                           <- as.numeric(Sys.getenv("ITER", unset = "1000"))
+chains_run                    <- as.numeric(Sys.getenv("CHAINS", unset = "1000"))
 
 
 cat("remove_participants_few_trials\n")
@@ -34,15 +37,20 @@ df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1
 random_pps = sample(unique(df_long$subject), 300, replace = FALSE)
 
 # Remove participants with limited data ----------------------------------------
+
 if (remove_participants_few_trials){
   df_long = df_long %>%
-    filter(n_trials > 22)
+    filter(n_trials > 22) %>%
+    mutate(trialcount_centered = scale(trialcount_centered, center = TRUE, scale = FALSE))
   
   df_long_odd = df_long_odd %>%
-    filter(n_trials > 22)
+    filter(n_trials > 22) %>%
+    mutate(trialcount_centered = scale(trialcount_centered, center = TRUE, scale = FALSE))
+  
   
   df_long_even = df_long_even %>%
-    filter(n_trials > 22)
+    filter(n_trials > 22) %>%
+    mutate(trialcount_centered = scale(trialcount_centered, center = TRUE, scale = FALSE))
   
 }
 
@@ -50,16 +58,18 @@ if (remove_participants_few_trials){
 
 if (small_sample_test){
   df_long = df_long %>%
-    filter(subject %in% random_pps)
+    filter(subject %in% random_pps) %>%
+    mutate(trialcount_centered = scale(trialcount_centered, center = TRUE, scale = FALSE))
   
   df_long_odd = df_long_odd %>%
-    filter(subject %in% random_pps)
+    filter(subject %in% random_pps) %>%
+    mutate(trialcount_centered = scale(trialcount_centered, center = TRUE, scale = FALSE))
   
   df_long_even = df_long_even %>%
-    filter(subject %in% random_pps)
+    filter(subject %in% random_pps) %>%
+    mutate(trialcount_centered = scale(trialcount_centered, center = TRUE, scale = FALSE))
   
 }
-
 
 # brms arguments ---------------------------------------------------------------
 
@@ -76,16 +86,16 @@ if (variational){
 }
 
 if (!variational){
-  threads_run = 4
   brm_args = list(
     data = df_long,
-    chains = threads_run,
-    cores = threads_run,
+    chains = chains_run,
+    cores = chains_run,
     # threads = threading(4),
-    threads = future::availableCores()/threads_run,
+    threads = floor(future::availableCores()/chains_run),
     backend = "cmdstanr",
-    iter = 3000,
-    seed = myseed
+    iter   = iter,
+    warmup = warmup,
+    seed   = myseed
   )
 }
 

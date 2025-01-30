@@ -1,7 +1,7 @@
 modelarg =  c(
     list(
-      formula =   bf(  sit_values_finalrating2 ~ 0 + sit_values_initialrating2 + delta_m4 + delta_m2 + delta_2 + delta_4 + (0 +  delta_m4 + delta_m2 + delta_2 + delta_4 |ID1| subject),
-                       sigma ~ 0 + delta_m4 + delta_m2 + delta_2 + delta_4 + (1 |ID1| subject)
+      formula =   bf(  sit_values_finalrating2 ~ 0 + sit_values_initialrating2 + delta_m4 + delta_m2 + delta_2 + delta_4 + (0 +  delta_m4 + delta_m2 + delta_2 + delta_4 | subject),
+                       sigma ~ 0 + delta_m4 + delta_m2 + delta_2 + delta_4 
       ),
       prior =  c(
         prior(normal(0, 1), class = "b"),

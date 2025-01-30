@@ -10,7 +10,7 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J social_influence_model2
+#SBATCH -J social_influence_model2_tester
 #! Which project should be charged:
 #SBATCH -A BLAKEMORE-SL3-CPU
 #SBATCH -p icelake-himem
@@ -19,9 +19,9 @@
 #! How many (MPI) tasks will there be in total? (<= nodes*76)
 #! The Ice Lake (icelake) nodes have 76 CPUs (cores) each and
 #! 3380 MiB of memory per CPU.
-#SBATCH --ntasks=76
+#SBATCH --ntasks=8
 #! How much wallclock time will be required?
-#SBATCH --time=12:00:00
+#SBATCH --time=0:30:00
 #! What types of email messages do you wish to receive?
 #SBATCH --mail-type=BEGIN,END,FAIL
 #! Where should the email be sent?
@@ -61,7 +61,7 @@ module load singularity/current
 export MYSEED="1"
 export MODELNAME="model2"
 export VARIATIONAL="FALSE"
-export SMALL_SAMPLE="FALSE"
+export SMALL_SAMPLE="TRUE"
 export REMOVE_PARTICIPANTS_FEW_TRIALS="TRUE"
 export WARMUP="1000"
 export ITER="2000"

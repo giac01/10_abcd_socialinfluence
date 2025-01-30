@@ -10,8 +10,9 @@ variational                    <- as.logical(Sys.getenv("VARIATIONAL", unset = "
 small_sample_test              <- as.logical(Sys.getenv("SMALL_SAMPLE", unset = "FALSE"))
 myseed                         <- as.numeric(Sys.getenv("MYSEED", unset = "1"))
 warmup                         <- as.numeric(Sys.getenv("WARMUP", unset = "1000"))
-iter                           <- as.numeric(Sys.getenv("ITER", unset = "1000"))
-chains_run                    <- as.numeric(Sys.getenv("CHAINS", unset = "1000"))
+iter                           <- as.numeric(Sys.getenv("ITER", unset = "2000"))
+chains_run                     <- as.numeric(Sys.getenv("CHAINS", unset = "2"))
+adapt_delta_val                <- as.numeric(Sys.getenv("ADAPTDELTA", unset = ".95"))
 
 
 cat("remove_participants_few_trials\n")
@@ -34,7 +35,7 @@ df_long$initialrating_boundrysquared   = (df_long$sit_values_initialrating2 - 5)
 df_long_odd  = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_odd.csv"), data.table = FALSE)
 df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_even.csv"), data.table = FALSE)
 
-random_pps = sample(unique(df_long$subject), 300, replace = FALSE)
+random_pps = sample(unique(df_long$subject), 1000, replace = FALSE)
 
 # Remove participants with limited data ----------------------------------------
 
@@ -92,6 +93,7 @@ if (!variational){
     cores = chains_run,
     # threads = threading(4),
     threads = floor(future::availableCores()/chains_run),
+    control = list(adapt_delta = adapt_delta_val),
     backend = "cmdstanr",
     iter   = iter,
     warmup = warmup,

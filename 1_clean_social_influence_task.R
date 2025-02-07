@@ -72,6 +72,9 @@ sit_df_long$delta_m2 = ifelse(sit_df_long$sit_values_delta ==-2, -2, 0)
 sit_df_long$delta_2  = ifelse(sit_df_long$sit_values_delta == 2,  2, 0)
 sit_df_long$delta_4  = ifelse(sit_df_long$sit_values_delta == 4,  4, 0)
 
+sit_df_long$delta_pos = ifelse(sit_df_long$sit_values_delta > 0, sit_df_long$sit_values_delta , 0)
+sit_df_long$delta_neg = ifelse(sit_df_long$sit_values_delta < 0, sit_df_long$sit_values_delta , 0)
+
 
 # Fix the date formatting - dates are formatted differently for build versions 5 and 6 of the task 
 

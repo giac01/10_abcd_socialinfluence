@@ -1,5 +1,6 @@
-cmdstanr::set_cmdstan_path(path = "/home/gb424/.cmdstan/cmdstan-2.34.1")
-# cmdstanr::set_cmdstan_path(path = "/home/rstudio/.cmdstan/cmdstan-2.35.0")
+# cmdstanr::set_cmdstan_path(path = "/home/gb424/.cmdstan/cmdstan-2.34.1")
+cmdstanr::set_cmdstan_path(path = "/home/rstudio/.cmdstan/cmdstan-2.35.0")
+
 
 rm(list = ls(all.names = TRUE))
 
@@ -14,15 +15,33 @@ iter                           <- as.numeric(Sys.getenv("ITER", unset = "2000"))
 chains_run                     <- as.numeric(Sys.getenv("CHAINS", unset = "2"))
 adapt_delta_val                <- as.numeric(Sys.getenv("ADAPTDELTA", unset = ".95"))
 
+print(
+data.frame(
+  Variable = c(
+    "REMOVE_PARTICIPANTS_FEW_TRIALS",
+    "VARIATIONAL",
+    "SMALL_SAMPLE",
+    "MYSEED",
+    "WARMUP",
+    "ITER",
+    "CHAINS",
+    "ADAPTDELTA"
+  ),
+  Value = c(
+    Sys.getenv("REMOVE_PARTICIPANTS_FEW_TRIALS", unset = "TRUE"),
+    Sys.getenv("VARIATIONAL", unset = "FALSE"),
+    Sys.getenv("SMALL_SAMPLE", unset = "FALSE"),
+    Sys.getenv("MYSEED", unset = "1"),
+    Sys.getenv("WARMUP", unset = "1000"),
+    Sys.getenv("ITER", unset = "2000"),
+    Sys.getenv("CHAINS", unset = "2"),
+    Sys.getenv("ADAPTDELTA", unset = ".95")
+  ),
+  stringsAsFactors = FALSE
+)
+)
 
-cat("remove_participants_few_trials\n")
-print(remove_participants_few_trials)
-cat("variational\n")
-print(variational)
-cat("small_sample_test\n")
-print(small_sample_test)
-cat("myseed\n")
-print(myseed)
+set.seed(myseed)
 
 df_long      = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1.csv"), data.table = FALSE)
 
@@ -35,7 +54,7 @@ df_long$initialrating_boundrysquared   = (df_long$sit_values_initialrating2 - 5)
 df_long_odd  = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_odd.csv"), data.table = FALSE)
 df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_even.csv"), data.table = FALSE)
 
-random_pps = sample(unique(df_long$subject), 1000, replace = FALSE)
+random_pps = sample(unique(df_long$subject), 600, replace = FALSE)
 
 # Remove participants with limited data ----------------------------------------
 
@@ -92,7 +111,7 @@ if (!variational){
     chains = chains_run,
     cores = chains_run,
     # threads = threading(4),
-    threads = floor(future::availableCores()/chains_run),
+    threads = floor(future::availableCores()/chains_run/2),
     control = list(adapt_delta = adapt_delta_val),
     backend = "cmdstanr",
     iter   = iter,

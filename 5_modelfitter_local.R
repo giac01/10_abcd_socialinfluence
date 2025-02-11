@@ -2,16 +2,16 @@
 #rstudioapi::restartSession()
 Sys.setenv(REMOVE_PARTICIPANTS_FEW_TRIALS = TRUE)
 Sys.setenv(VARIATIONAL = FALSE)
-Sys.setenv(SMALL_SAMPLE = FALSE)
+Sys.setenv(SMALL_SAMPLE = TRUE)
 Sys.setenv(MYSEED = 2)
-Sys.setenv(WARMUP = 1500)
-Sys.setenv(ITER = 2500)
-Sys.setenv(CHAINS = 4)
-Sys.setenv(ADAPTDELTA = .975)
+Sys.setenv(WARMUP = 1000)
+Sys.setenv(ITER = 1500)
+Sys.setenv(CHAINS = 2)
+Sys.setenv(ADAPTDELTA = .95)
 
 
 source("2_load_social_influence_data.R")
 
 
-source(file.path("model_fitting_scripts","model1_d.R")) 
+source(file.path("model_fitting_scripts","model1_f.R")) 
 

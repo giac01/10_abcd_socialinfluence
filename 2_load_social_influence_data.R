@@ -54,7 +54,7 @@ df_long$initialrating_boundrysquared   = (df_long$sit_values_initialrating2 - 5)
 df_long_odd  = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_odd.csv"), data.table = FALSE)
 df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_even.csv"), data.table = FALSE)
 
-random_pps = sample(unique(df_long$subject), 600, replace = FALSE)
+random_pps = sample(unique(df_long$subject), 2500, replace = FALSE)
 
 # Remove participants with limited data ----------------------------------------
 
@@ -97,7 +97,8 @@ if (variational){
   brm_args = list(
     algorithm = "meanfield",
     iter = 1000000,
-    tol_rel_obj = 0.0001,
+    # tol_rel_obj = 0.0001,  # original
+    tol_rel_obj = 0.001,      # fast inference
     data = df_long,
     backend = "cmdstanr",
     threads = threading(8),
@@ -111,7 +112,7 @@ if (!variational){
     chains = chains_run,
     cores = chains_run,
     # threads = threading(4),
-    threads = floor(future::availableCores()/chains_run/2),
+    threads = floor(future::availableCores()/chains_run),
     control = list(adapt_delta = adapt_delta_val),
     backend = "cmdstanr",
     iter   = iter,

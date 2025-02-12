@@ -12,22 +12,22 @@ modelarg =  c(
   ),
   # sample_prior = "only",
   brm_args,
-  # max_treedepth = 15,
+  max_treedepth = 15,
   init = function() {
     list(
       b = c(
         1.0,  
-        0.4,  
-        0.3
+        0.44,  
+        0.33
       ), # delta_neg
-      Intercept = -.1,
-      Intercept_sigma = -.1,
-      sd_subject__delta_pos = 0.25,  # Group-level SD for delta_pos
-      sd_subject__delta_neg = 0.25,  # Group-level SD for delta_neg
-      sd_sigma__Intercept = .6,
-      cor_subject__delta_pos__delta_neg = .9,  # Start at 0 for better mixing
-      cor_subject__delta_pos__sigma_Intercept = -.1,  # Start at 0 for better mixing
-      cor_subject__delta_neg__sigma_Intercept = -.1  # Start at 0 for better mixing
+      Intercept = 0,
+      Intercept_sigma = -.2,
+      sd_subject__delta_pos = 0.3,  
+      sd_subject__delta_neg = 0.3,  
+      sd_sigma__Intercept = .64,
+      cor_subject__delta_pos__delta_neg = .83,  
+      cor_subject__delta_pos__sigma_Intercept = -.1,  
+      cor_subject__delta_neg__sigma_Intercept = -.2  
       
     )
   }
@@ -37,7 +37,7 @@ model1 = do.call(brm, modelarg)
 
 saveRDS(model1, file = paste0("/rds/user/gb424/hpc-work/model1",Sys.time(),".Rds"))
 
-#saveRDS(model1, file = file.path("saved_models",paste0("model1_d",Sys.time(),".Rds")))
+#saveRDS(model1, file = file.path("saved_models",paste0("model1_f",Sys.time(),".Rds")))
 
 
 

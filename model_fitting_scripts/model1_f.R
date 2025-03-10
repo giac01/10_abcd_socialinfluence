@@ -17,17 +17,17 @@ modelarg =  c(
     list(
       b = c(
         1.0,  
-        0.44,  
+        0.45,  
         0.33
       ), # delta_neg
-      Intercept = 0,
-      Intercept_sigma = -.2,
-      sd_subject__delta_pos = 0.3,  
-      sd_subject__delta_neg = 0.3,  
-      sd_sigma__Intercept = .64,
-      cor_subject__delta_pos__delta_neg = .83,  
-      cor_subject__delta_pos__sigma_Intercept = -.1,  
-      cor_subject__delta_neg__sigma_Intercept = -.2  
+      Intercept = -.05,
+      Intercept_sigma = -.18,
+      sd_subject__delta_pos = 0.31,  
+      sd_subject__delta_neg = 0.29,  
+      sd_sigma__Intercept = .63,
+      cor_subject__delta_pos__delta_neg = .80,  
+      cor_subject__delta_pos__sigma_Intercept = -.14,  
+      cor_subject__delta_neg__sigma_Intercept = -.26  
       
     )
   }

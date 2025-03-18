@@ -1,6 +1,6 @@
 # cmdstanr::set_cmdstan_path(path = "/home/gb424/.cmdstan/cmdstan-2.34.1")
-cmdstanr::set_cmdstan_path(path = "/home/rstudio/.cmdstan/cmdstan-2.35.0")
-
+# cmdstanr::set_cmdstan_path(path = "/home/rstudio/.cmdstan/cmdstan-2.35.0")
+cmdstanr::set_cmdstan_path(path = "/home/gb424/.cmdstan/cmdstan-2.36.0")
 
 rm(list = ls(all.names = TRUE))
 
@@ -54,7 +54,7 @@ df_long$initialrating_boundrysquared   = (df_long$sit_values_initialrating2 - 5)
 df_long_odd  = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_odd.csv"), data.table = FALSE)
 df_long_even = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1_even.csv"), data.table = FALSE)
 
-random_pps = sample(unique(df_long$subject), 2500, replace = FALSE)
+random_pps = sample(unique(df_long$subject), 100, replace = FALSE)
 
 # Remove participants with limited data ----------------------------------------
 

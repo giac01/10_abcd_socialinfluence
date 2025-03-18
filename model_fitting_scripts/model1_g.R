@@ -35,7 +35,7 @@ modelarg =  c(
   init = init_function
 )
 
-model1 = do.call(brm, modelarg)
+model = do.call(brm, modelarg)
 
 
 

@@ -30,23 +30,29 @@ library(tidybayes)
 
 df_long = data.table::fread(file.path("cleaned_data", "sit_df_long_cleaned1.csv"), data.table = FALSE)
 
-
 df_long$sit_values_delta_factor = factor(df_long$sit_values_delta)
 
-model1 = readRDS(file = file.path("saved_models","model1.Rds"))
-model2 = readRDS(file = file.path("saved_models","model2.Rds"))
-# model3a = readRDS(file = file.path("saved_models","model3a.Rds"))
-model3b = readRDS(file = file.path("saved_models","model3b.Rds"))
-model3c = readRDS(file = file.path("saved_models","model3c.Rds"))
-model4 = readRDS(file = file.path("saved_models","model4.Rds"))
-model4b = readRDS(file = file.path("saved_models","model4b.Rds"))
-model4_ppcheck = readRDS(file = file.path("saved_models","model4_ppcheck"))
-
-model5 = readRDS(file = file.path("saved_models","model5.Rds"))
+model1 = readRDS(file = file.path("saved_models","model3_aseed1002-2025-03-31 04_10_36.48351.Rds"))
 
 
-model1_even = readRDS(file = file.path("saved_models","model1_even.Rds"))
-model1_odd  = readRDS(file = file.path("saved_models","model1_odd.Rds"))
+modelmodel1 = readRDS(file = file.path("saved_models","model1_gseed1001-2025-03-18 17_02_04.089372.Rds"))
+
+# model1a = readRDS(file = file.path("saved_models","model1_gseed1003-2025-03-19 12_21_01.111114.Rds"))
+# model1b = readRDS(file = file.path("saved_models","model1_gseed1002-2025-03-19 12_42_04.262271.Rds"))
+
+# model2 = readRDS(file = file.path("saved_models","model2.Rds"))
+# # model3a = readRDS(file = file.path("saved_models","model3a.Rds"))
+# model3b = readRDS(file = file.path("saved_models","model3b.Rds"))
+# model3c = readRDS(file = file.path("saved_models","model3c.Rds"))
+# model4 = readRDS(file = file.path("saved_models","model4.Rds"))
+# model4b = readRDS(file = file.path("saved_models","model4b.Rds"))
+# model4_ppcheck = readRDS(file = file.path("saved_models","model4_ppcheck"))
+# 
+# model5 = readRDS(file = file.path("saved_models","model5.Rds"))
+# 
+# 
+# model1_even = readRDS(file = file.path("saved_models","model1_even.Rds"))
+# model1_odd  = readRDS(file = file.path("saved_models","model1_odd.Rds"))
 
 # model3_even = readRDS(file = file.path("saved_models","model3_even.Rds"))
 # model3_odd  = readRDS(file = file.path("saved_models","model3_odd.Rds"))

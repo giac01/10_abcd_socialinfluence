@@ -10,7 +10,7 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J social_influence_model2
+#SBATCH -J social_influence_model1f_40core
 #! Which project should be charged:
 #SBATCH -A BLAKEMORE-SL3-CPU
 #SBATCH -p icelake-himem
@@ -58,18 +58,18 @@ module load rhel8/default-icl              # REQUIRED - loads the basic environm
 #! Insert additional module load commands after this line if needed:
 module load singularity/current
 
-export MYSEED="1"
-export MODELNAME="model2"
+export MYSEED="1001"
+export MODELNAME="model2_a"
 export VARIATIONAL="FALSE"
 export SMALL_SAMPLE="FALSE"
 export REMOVE_PARTICIPANTS_FEW_TRIALS="TRUE"
-export WARMUP="1000"
-export ITER="2000"
-export CHAINS="2"
-export ADAPTDELTA="0.99"
+export CHAINS="4"
+export WARMUP="1200"
+export ITER="2400"
+export ADAPTDELTA=".965"
 
 #! Full path to application executable: 
-application="singularity exec 6_ptsd_v4.sif Rscript 6_modelfitter_slurm.R"
+application="singularity exec tidyverse442_v1.sif Rscript 6_modelfitter_slurm.R"
 
 #! Run options for the application:
 options=""

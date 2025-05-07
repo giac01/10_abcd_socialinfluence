@@ -10,7 +10,7 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J social_influence_model1f_40core
+#SBATCH -J social_influence_model3b_seed1001_76core
 #! Which project should be charged:
 #SBATCH -A BLAKEMORE-SL3-CPU
 #SBATCH -p icelake-himem
@@ -59,13 +59,13 @@ module load rhel8/default-icl              # REQUIRED - loads the basic environm
 module load singularity/current
 
 export MYSEED="1001"
-export MODELNAME="model3_a"
+export MODELNAME="model3_b"
 export VARIATIONAL="FALSE"
 export SMALL_SAMPLE="FALSE"
 export REMOVE_PARTICIPANTS_FEW_TRIALS="TRUE"
-export CHAINS="4"
-export WARMUP="1000"
-export ITER="2000"
+export CHAINS="2"
+export WARMUP="1200"
+export ITER="3400"
 export ADAPTDELTA=".965"
 
 #! Full path to application executable: 

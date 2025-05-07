@@ -2,7 +2,7 @@
 
 modelarg =  c(
     list(
-      formula =   sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + sit_values_delta * trialcount_centered + (0 + sit_values_delta * trialcount_centered || subject) + (1 + sit_values_delta | sit_values_scenario)),
+      formula =   sit_values_finalrating2 ~ 1 + sit_values_initialrating2 + sit_values_delta * trialcount_centered + (0 + sit_values_delta * trialcount_centered || subject) + (1 + sit_values_delta || sit_values_scenario)),
       # prior =  c(
       #   prior(normal(0, 1), class = "b"),
       #   prior(cauchy(0, 1), class = "sd")

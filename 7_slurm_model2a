@@ -10,7 +10,7 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J social_influence_model1f_40core
+#SBATCH -J social_influence_model2a
 #! Which project should be charged:
 #SBATCH -A BLAKEMORE-SL3-CPU
 #SBATCH -p icelake-himem
@@ -63,7 +63,7 @@ export MODELNAME="model2_a"
 export VARIATIONAL="FALSE"
 export SMALL_SAMPLE="FALSE"
 export REMOVE_PARTICIPANTS_FEW_TRIALS="TRUE"
-export CHAINS="4"
+export CHAINS="2"
 export WARMUP="1200"
 export ITER="2400"
 export ADAPTDELTA=".965"
